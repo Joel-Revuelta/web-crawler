@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"web-crawler/backend/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
@@ -23,7 +24,8 @@ func main() {
 	}
 	fmt.Println("Database connection successful!")
 
-	_ = db
+	fmt.Println("Running database migrations...")
+	db.AutoMigrate(&models.Website{})
 
 	router := gin.Default()
 
