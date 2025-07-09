@@ -12,6 +12,7 @@ func SetupRoutes(router *gin.Engine, db *gorm.DB) {
 
 	api := router.Group("/api/v1")
 	{
+		api.GET("/urls", urlHandler.GetURLs)
 		api.POST("/urls", urlHandler.CreateURL)
 	}
 }

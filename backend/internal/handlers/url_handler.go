@@ -24,11 +24,21 @@ func (h *URLHandler) CreateURL(c *gin.Context) {
 
 	website := models.Website{URL: newURL.URL}
 
-	result := h.DB.Create(&website)
-	if result.Error != nil {
+	if result := h.DB.Create(&website); result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, website)
+}
+
+func (h *URLHandler) GetURLs(c *gin.Context) {
+	var websites []models.Website
+
+	if result := h.DB.Find(&websites); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, websites)
 }
