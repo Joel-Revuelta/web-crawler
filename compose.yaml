@@ -4,10 +4,15 @@ services:
     container_name: mysql_db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_ROOT_PASSWORD: 1234
       MYSQL_DATABASE: web_crawler_db
       MYSQL_USER: mysql_user
       MYSQL_PASSWORD: 1234
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - "3306:3306"
     volumes:
@@ -16,6 +21,7 @@ services:
   backend:
     build:
       context: ./backend
+      target: development
     container_name: go_backend
     restart: unless-stopped
     ports:
@@ -25,7 +31,8 @@ services:
     environment:
       - DB_SOURCE=mysql_user:1234@tcp(mysql_db:3306)/web_crawler_db?parseTime=true
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
     build:
