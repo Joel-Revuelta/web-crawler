@@ -1,8 +1,11 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"web-crawler/backend/internal/types"
 
-// StatusType defines the enumeration for website crawl statuses.
+	"gorm.io/gorm"
+)
+
 type StatusType string
 
 const (
@@ -19,11 +22,11 @@ type Website struct {
 	URL    string     `json:"url" gorm:"unique;not null"`
 	Status StatusType `json:"status" gorm:"type:varchar(20);default:'queued';not null"`
 
-	HTMLVersion       string         `json:"htmlVersion"`
-	Title             string         `json:"title"`
-	HeadingsCount     map[string]int `json:"headingsCount" gorm:"type:json"`
-	InternalLinks     int            `json:"internalLinks"`
-	ExternalLinks     int            `json:"externalLinks"`
-	InaccessibleLinks int            `json:"inaccessibleLinks"`
-	HasLoginForm      bool           `json:"hasLoginForm"`
+	HTMLVersion       string        `json:"htmlVersion"`
+	Title             string        `json:"title"`
+	HeadingsCount     types.JSONMap `json:"headingsCount" gorm:"type:json"`
+	InternalLinks     int           `json:"internalLinks"`
+	ExternalLinks     int           `json:"externalLinks"`
+	InaccessibleLinks int           `json:"inaccessibleLinks"`
+	HasLoginForm      bool          `json:"hasLoginForm"`
 }

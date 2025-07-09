@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"web-crawler/backend/internal/routes"
 	"web-crawler/backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,8 @@ func main() {
 			"status": "OK",
 		})
 	})
+
+	routes.SetupRoutes(router, db)
 
 	fmt.Println("Starting server on port 8080...")
 	if err := router.Run(":8080"); err != nil {
