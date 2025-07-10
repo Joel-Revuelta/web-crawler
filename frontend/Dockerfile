@@ -2,14 +2,21 @@ FROM node:24-alpine AS development
 
 WORKDIR /app
 
+# Install inotify-tools for watching file changes
+RUN apk add --no-cache inotify-tools
+
 COPY package*.json ./
 RUN npm install
 
 COPY . .
 
+# Copy the entrypoint script and make it executable
+COPY entrypoint.sh .
+RUN chmod +x ./entrypoint.sh
+
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+CMD ["./entrypoint.sh"]
 
 FROM node:24-alpine AS builder
 
