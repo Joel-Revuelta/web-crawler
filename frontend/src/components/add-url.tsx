@@ -4,16 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Plus } from "lucide-react";
+import { Loader, Plus } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import z from "zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { postNewUrl } from "@/services/urlsService";
+import { toast } from "sonner";
+import { AxiosError } from "axios";
 
 const formSchema = z.object({
   url: z.url()
 })
 
 export default function AddURL() {
+  const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -22,9 +27,52 @@ export default function AddURL() {
     }
   })
 
+  const mutation = useMutation({
+    mutationFn: (newUrl: string) => {
+      return postNewUrl(newUrl);
+    }
+  })
+
   function onSubmit(data: z.infer<typeof formSchema>) {
-    console.log("Submitted URL:", data.url);
-    form.reset();
+    mutation.mutate(data.url, {
+      onSuccess: () => {
+        showSuccessToast();
+        queryClient.invalidateQueries({
+          queryKey: ['urls']
+        })
+        form.reset();
+      },
+      onError: (error) => {
+        console.error("Error adding URL:", error);
+        if (error instanceof AxiosError && error.response?.data?.error) {
+          showErrorToast(error.response.data.error);
+        } else {
+          showErrorToast("An unexpected error occurred. Please try again.");
+        }
+      }
+    });
+  }
+
+  function showSuccessToast() {
+    toast.success("URL added successfully!", {
+      duration: 5000,
+      position: "top-right",
+      style: {
+        background: "#e0f2f1",
+        color: "#004d40",
+      }
+    });
+  }
+
+  function showErrorToast(message: string) {
+    toast.error(message, {
+      duration: 5000,
+      position: "top-right",
+      style: {
+        background: "#fdecea",
+        color: "#b91c1c",
+      }
+    });
   }
 
   return (
@@ -50,8 +98,12 @@ export default function AddURL() {
                         {...field}
                       />
                     </FormControl>
-                    <Button type="submit" className="self-end">
-                      <Plus className="w-4 h-4 mr-2"/>
+                    <Button type="submit" disabled={mutation.isPending}>
+                      {mutation.isPending ? (
+                        <Loader className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Plus className="w-4 h-4 mr-2"/>
+                      )}
                       Add URL
                     </Button>
                   </div>
