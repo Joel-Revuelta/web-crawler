@@ -43,36 +43,29 @@ func (h *URLHandler) CreateURL(c *gin.Context) {
 }
 
 func (h *URLHandler) GetURLs(c *gin.Context) {
-	var websites []models.Website
-	page := c.DefaultQuery("page", "1")
-	limit := c.DefaultQuery("limit", "10")
+	page, limit, offset := getPagination(c)
 
-	pageInt, err := strconv.Atoi(page)
-	if err != nil || pageInt < 1 {
-		pageInt = 1
-	}
-
-	limitInt, err := strconv.Atoi(limit)
-	if err != nil || limitInt < 1 {
-		limitInt = 10
-	}
-
-	offset := (pageInt - 1) * limitInt
+	query := h.DB.Model(&models.Website{})
+	query = buildFilterQuery(c, query)
 
 	var totalItems int64
-	if err := h.DB.Model(&models.Website{}).Count(&totalItems).Error; err != nil {
+	if err := query.Count(&totalItems).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve total count"})
 		return
 	}
 
-	if result := h.DB.Order("id desc").Offset(offset).Limit(limitInt).Find(&websites); result.Error != nil {
+	var websites []models.Website
+	if result := query.Order("id desc").Offset(offset).Limit(limit).Find(&websites); result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return
 	}
 
-	totalPages := int(totalItems) / limitInt
-	if int(totalItems)%limitInt != 0 {
-		totalPages++
+	totalPages := 0
+	if limit > 0 {
+		totalPages = int(totalItems) / limit
+		if int(totalItems)%limit != 0 {
+			totalPages++
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -80,8 +73,62 @@ func (h *URLHandler) GetURLs(c *gin.Context) {
 		"pagination": gin.H{
 			"totalItems":  totalItems,
 			"totalPages":  totalPages,
-			"currentPage": pageInt,
-			"pageSize":    limitInt,
+			"currentPage": page,
+			"pageSize":    limit,
 		},
 	})
+}
+
+func getPagination(c *gin.Context) (page, limit, offset int) {
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "10")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	limit, err = strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		limit = 10
+	}
+
+	offset = (page - 1) * limit
+	return page, limit, offset
+}
+
+func buildFilterQuery(c *gin.Context, query *gorm.DB) *gorm.DB {
+	if search := c.Query("search"); search != "" {
+		likeQuery := "%" + search + "%"
+		query = query.Where("url LIKE ? OR title LIKE ?", likeQuery, likeQuery)
+	}
+
+	if status := c.Query("status"); status != "" && status != "all" {
+		query = query.Where("status = ?", status)
+	}
+
+	if hasLogin := c.Query("hasLogin"); hasLogin != "" && hasLogin != "all" {
+		hasLoginBool := hasLogin == "yes"
+		query = query.Where("has_login_form = ?", hasLoginBool)
+	}
+
+	applyRangeFilter(c, query, "internalLinksMin", "internal_links", ">=")
+	applyRangeFilter(c, query, "internalLinksMax", "internal_links", "<=")
+	applyRangeFilter(c, query, "externalLinksMin", "external_links", ">=")
+	applyRangeFilter(c, query, "externalLinksMax", "external_links", "<=")
+	applyRangeFilter(c, query, "inaccessibleLinksMin", "inaccessible_links", ">=")
+	applyRangeFilter(c, query, "inaccessibleLinksMax", "inaccessible_links", "<=")
+
+	applyRangeFilter(c, query, "dateCreatedFrom", "created_at", ">=")
+	applyRangeFilter(c, query, "dateCreatedTo", "created_at", "<=")
+	applyRangeFilter(c, query, "dateCrawledFrom", "crawled_finished_at", ">=")
+	applyRangeFilter(c, query, "dateCrawledTo", "crawled_finished_at", "<=")
+
+	return query
+}
+
+func applyRangeFilter(c *gin.Context, query *gorm.DB, paramName, dbField, operator string) {
+	if value := c.Query(paramName); value != "" {
+		query.Where(dbField+" "+operator+" ?", value)
+	}
 }

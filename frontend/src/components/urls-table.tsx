@@ -6,23 +6,24 @@ import { Checkbox } from "./ui/checkbox";
 import { fetchUrls } from "@/services/urlsService";
 import { useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { CrawlStatus, URL } from "@/types/urls";
+import { CrawlStatus, URL } from "@/types/urls.types";
 import { Badge } from "./ui/badge";
+import { FiltersState, useUrlFilters } from "@/hooks/useUrlFilters";
 
 export default function UrlsTable() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedUrls, setSelectedUrls] = useState<number[]>([]);
+  const { filters, dispatch } = useUrlFilters();
 
-  
   const { isPending, isError, error, data, isFetching, isPlaceholderData } = useQuery({
-    queryKey: ["urls", page, pageSize],
-    queryFn: () => getUrls(page, pageSize),
+    queryKey: ["urls", page, pageSize, filters],
+    queryFn: () => getUrls(page, pageSize, filters),
     placeholderData: keepPreviousData
   });
-  
-  const getUrls = async (page: number, pageSize: number) => {
-    const response = await fetchUrls(page, pageSize);
+
+  const getUrls = async (page: number, pageSize: number, filters: FiltersState) => {
+    const response = await fetchUrls(page, pageSize, filters);
     return response.data;
   }
 
@@ -99,6 +100,7 @@ export default function UrlsTable() {
           </Button>
         </div>
       </CardHeader>
+
       <CardContent className="space-y-4">
         {isPending ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -147,6 +149,7 @@ export default function UrlsTable() {
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </Button>
                     </TableHead>
+                    <TableHead>Login Form</TableHead>
                     <TableHead>
                       <Button variant="ghost" className="h-auto p-0!">
                         Internal Links
@@ -189,9 +192,22 @@ export default function UrlsTable() {
                       <TableCell className="font-medium">{url.title || "No title"}</TableCell>
                       <TableCell className="max-w-xs truncate">{url.url}</TableCell>
                       <TableCell>{url.htmlVersion || "N/A"}</TableCell>
+                      <TableCell>
+                        <Badge variant={url.hasLoginForm ? "default" : "secondary"} className="text-xs">
+                          {url.hasLoginForm ? "Yes" : "No"}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{url.internalLinks}</TableCell>
                       <TableCell>{url.externalLinks}</TableCell>
-                      <TableCell>{url.brokenLinks}</TableCell>
+                      <TableCell>
+                        {url.brokenLinks > 0 ? (
+                          <Badge variant="destructive" className="text-xs">
+                            {url.brokenLinks}
+                          </Badge>
+                        ) : (
+                          <span>0</span>
+                        )}
+                      </TableCell>
                       <TableCell className="flex gap-1">
                         {url.status === CrawlStatus.Crawling ? (
                           <Button
