@@ -1,6 +1,7 @@
 "use client";
 
 import AddURL from "@/components/add-url";
+import UrlsTable from "@/components/urls-table";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 export default function Home() {
@@ -17,6 +18,8 @@ export default function Home() {
         </div>
 
         <AddURL />
+
+        <UrlsTable />
       </div>
     </QueryClientProvider>
   );
