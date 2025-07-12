@@ -5,13 +5,14 @@ import { z } from "zod";
 export const filtersSchema = z.object({
   search: z.string().optional(),
   status: z.enum(["all", ...Object.values(CrawlStatus)]).optional(),
+  htmlVersion: z.enum(["all", "html5", "html4", "xhtml"]).optional(),
   hasLogin: z.enum(["all", "yes", "no"]).optional(),
   internalLinksMin: z.number().optional(),
   internalLinksMax: z.number().optional(),
   externalLinksMin: z.number().optional(),
   externalLinksMax: z.number().optional(),
-  inaccessibleLinksMin: z.number().optional(),
-  inaccessibleLinksMax: z.number().optional(),
+  brokenLinksMin: z.number().optional(),
+  brokenLinksMax: z.number().optional(),
   dateCreatedFrom: z.date().optional(),
   dateCreatedTo: z.date().optional(),
   dateCrawledFrom: z.date().optional(),
@@ -23,6 +24,7 @@ export type FiltersState = z.infer<typeof filtersSchema>;
 type FiltersAction =
   | { type: "SET_SEARCH"; payload: string }
   | { type: "SET_STATUS"; payload: "all" | CrawlStatus }
+  | { type: "SET_HTML_VERSION"; payload: "all" | "html5" | "html4" | "xhtml" }
   | { type: "SET_HAS_LOGIN"; payload: "all" | "yes" | "no" }
   | { type: "SET_RANGE"; payload: { key: keyof FiltersState; value?: number } }
   | { type: "SET_DATE"; payload: { key: keyof FiltersState; value?: Date } }
@@ -31,6 +33,7 @@ type FiltersAction =
 const initialState: FiltersState = {
   search: "",
   status: "all",
+  htmlVersion: "all",
   hasLogin: "all",
 };
 
@@ -40,6 +43,8 @@ function filtersReducer(state: FiltersState, action: FiltersAction): FiltersStat
       return { ...state, search: action.payload };
     case "SET_STATUS":
       return { ...state, status: action.payload };
+    case "SET_HTML_VERSION":
+      return { ...state, htmlVersion: action.payload };
     case "SET_HAS_LOGIN":
       return { ...state, hasLogin: action.payload };
     case "SET_RANGE":

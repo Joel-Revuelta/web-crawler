@@ -10,6 +10,7 @@ export function postNewUrl(newUrl: string) {
 }
 
 export function fetchUrls(page: number, pageSize: number, filters: FiltersState) {
+    console.log("Fetching URLs with filters:", filters);
     const params = new URLSearchParams({
         page: page.toString(),
         limit: pageSize.toString(),

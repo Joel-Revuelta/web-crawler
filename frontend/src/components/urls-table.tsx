@@ -4,23 +4,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Checkbox } from "./ui/checkbox";
 import { fetchUrls } from "@/services/urlsService";
-import { useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useDebounce } from "@uidotdev/usehooks";
+import { FiltersState, useUrlFilters } from "@/hooks/useUrlFilters";
+import UrlsFilters from "./urls-filters";
 import { CrawlStatus, URL } from "@/types/urls.types";
 import { Badge } from "./ui/badge";
-import { FiltersState, useUrlFilters } from "@/hooks/useUrlFilters";
 
 export default function UrlsTable() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedUrls, setSelectedUrls] = useState<number[]>([]);
   const { filters, dispatch } = useUrlFilters();
+  const debouncedFilters = useDebounce(filters, 300);
 
   const { isPending, isError, error, data, isFetching, isPlaceholderData } = useQuery({
-    queryKey: ["urls", page, pageSize, filters],
-    queryFn: () => getUrls(page, pageSize, filters),
+    queryKey: ["urls", page, pageSize, debouncedFilters],
+    queryFn: () => getUrls(page, pageSize, debouncedFilters),
     placeholderData: keepPreviousData
   });
+
+  useEffect(() => {
+    if (page !== 1) {
+      setPage(1);
+    }
+  }, [debouncedFilters]);
 
   const getUrls = async (page: number, pageSize: number, filters: FiltersState) => {
     const response = await fetchUrls(page, pageSize, filters);
@@ -102,6 +111,8 @@ export default function UrlsTable() {
       </CardHeader>
 
       <CardContent className="space-y-4">
+        <UrlsFilters filters={filters} dispatch={dispatch} />
+
         {isPending ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Loader2 className="h-12 w-12 animate-spin text-muted-foreground mb-4" />

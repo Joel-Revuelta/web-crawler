@@ -107,6 +107,10 @@ func buildFilterQuery(c *gin.Context, query *gorm.DB) *gorm.DB {
 		query = query.Where("status = ?", status)
 	}
 
+	if htmlVersion := c.Query("htmlVersion"); htmlVersion != "" && htmlVersion != "all" {
+		query = query.Where("html_version = ?", htmlVersion)
+	}
+
 	if hasLogin := c.Query("hasLogin"); hasLogin != "" && hasLogin != "all" {
 		hasLoginBool := hasLogin == "yes"
 		query = query.Where("has_login_form = ?", hasLoginBool)
@@ -116,8 +120,8 @@ func buildFilterQuery(c *gin.Context, query *gorm.DB) *gorm.DB {
 	applyRangeFilter(c, query, "internalLinksMax", "internal_links", "<=")
 	applyRangeFilter(c, query, "externalLinksMin", "external_links", ">=")
 	applyRangeFilter(c, query, "externalLinksMax", "external_links", "<=")
-	applyRangeFilter(c, query, "inaccessibleLinksMin", "inaccessible_links", ">=")
-	applyRangeFilter(c, query, "inaccessibleLinksMax", "inaccessible_links", "<=")
+	applyRangeFilter(c, query, "brokenLinksMin", "broken_links", ">=")
+	applyRangeFilter(c, query, "brokenLinksMax", "broken_links", "<=")
 
 	applyRangeFilter(c, query, "dateCreatedFrom", "created_at", ">=")
 	applyRangeFilter(c, query, "dateCreatedTo", "created_at", "<=")
