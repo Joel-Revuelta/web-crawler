@@ -17,6 +17,8 @@ export const filtersSchema = z.object({
   dateCreatedTo: z.date().optional(),
   dateCrawledFrom: z.date().optional(),
   dateCrawledTo: z.date().optional(),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
 });
 
 export type FiltersState = z.infer<typeof filtersSchema>;
@@ -28,6 +30,7 @@ type FiltersAction =
   | { type: "SET_HAS_LOGIN"; payload: "all" | "yes" | "no" }
   | { type: "SET_RANGE"; payload: { key: keyof FiltersState; value?: number } }
   | { type: "SET_DATE"; payload: { key: keyof FiltersState; value?: Date } }
+  | { type: "SET_SORT"; payload: { sortBy: keyof URL } }
   | { type: "RESET_FILTERS" };
 
 const initialState: FiltersState = {
@@ -35,6 +38,8 @@ const initialState: FiltersState = {
   status: "all",
   htmlVersion: "all",
   hasLogin: "all",
+  sortBy: "CreatedAt",
+  sortOrder: "desc",
 };
 
 function filtersReducer(state: FiltersState, action: FiltersAction): FiltersState {
@@ -50,8 +55,17 @@ function filtersReducer(state: FiltersState, action: FiltersAction): FiltersStat
     case "SET_RANGE":
     case "SET_DATE":
       return { ...state, [action.payload.key]: action.payload.value };
+    case "SET_SORT":
+      if (state.sortBy === action.payload.sortBy) {
+        return { ...state, sortOrder: state.sortOrder === "asc" ? "desc" : "asc" };
+      }
+      return { ...state, sortBy: action.payload.sortBy, sortOrder: "asc" };
     case "RESET_FILTERS":
-      return initialState;
+      return {
+        ...initialState,
+        sortBy: state.sortBy,
+        sortOrder: state.sortOrder,
+      };
     default:
       return state;
   }

@@ -128,6 +128,27 @@ func buildFilterQuery(c *gin.Context, query *gorm.DB) *gorm.DB {
 	applyRangeFilter(c, query, "dateCrawledFrom", "crawled_finished_at", ">=")
 	applyRangeFilter(c, query, "dateCrawledTo", "crawled_finished_at", "<=")
 
+	if sortBy := c.Query("sortBy"); sortBy != "" {
+		sortOrder := c.DefaultQuery("sortOrder", "asc")
+		if sortOrder != "asc" && sortOrder != "desc" {
+			sortOrder = "asc"
+		}
+
+		columnMap := map[string]string{
+			"status":        "status",
+			"title":         "title",
+			"url":           "url",
+			"htmlVersion":   "html_version",
+			"internalLinks": "internal_links",
+			"externalLinks": "external_links",
+			"CreatedAt":     "created_at",
+		}
+
+		if dbColumn, ok := columnMap[sortBy]; ok {
+			query = query.Order(dbColumn + " " + sortOrder)
+		}
+	}
+
 	return query
 }
 

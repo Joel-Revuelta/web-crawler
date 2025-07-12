@@ -1,18 +1,28 @@
-import { AlertTriangle, ArrowUpDown, ChevronLeft, Loader2, Pause, Play, RefreshCw, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  Loader2,
+  Play,
+  RefreshCw,
+  StopCircle,
+  Trash2,
+  AlertTriangle,
+} from "lucide-react";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useDebounce } from "@uidotdev/usehooks";
+import { FiltersState, useUrlFilters } from "@/hooks/useUrlFilters";
+import { Dispatch } from "react";
+import UrlsFilters from "./urls-filters";
+import { URL, CrawlStatus } from "@/types/urls.types";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Checkbox } from "./ui/checkbox";
 import { fetchUrls } from "@/services/urlsService";
 import { useState, useEffect } from "react";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { useDebounce } from "@uidotdev/usehooks";
-import { FiltersState, useUrlFilters } from "@/hooks/useUrlFilters";
-import UrlsFilters from "./urls-filters";
-import { CrawlStatus, URL } from "@/types/urls.types";
 import { Badge } from "./ui/badge";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import SortableHeader from "./SortableHeader";
 
 export default function UrlsTable() {
   const [page, setPage] = useState(1);
@@ -35,6 +45,7 @@ export default function UrlsTable() {
 
   const getUrls = async (page: number, pageSize: number, filters: FiltersState) => {
     const response = await fetchUrls(page, pageSize, filters);
+    console.log("Fetched URLs:", response.data);
     return response.data;
   }
 
@@ -151,46 +162,81 @@ export default function UrlsTable() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">
-                      <Checkbox checked={allCurrentPageSelected} onCheckedChange={handleSelectAll} />
+                      <Checkbox
+                        checked={allCurrentPageSelected}
+                        onCheckedChange={handleSelectAll}
+                      />
                     </TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead>
-                      <Button variant="ghost" className="h-auto p-0!">
-                        Title
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
+                      <SortableHeader
+                        label="Status"
+                        value="status"
+                        filters={filters}
+                        dispatch={dispatch}
+                      />
                     </TableHead>
-                    <TableHead>URL</TableHead>
                     <TableHead>
-                      <Button variant="ghost" className="h-auto p-0!">
-                        HTML Version
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
+                      <SortableHeader
+                        label="Title"
+                        value="title"
+                        filters={filters}
+                        dispatch={dispatch}
+                      />
+                    </TableHead>
+                    <TableHead>
+                      <SortableHeader
+                        label="URL"
+                        value="url"
+                        filters={filters}
+                        dispatch={dispatch}
+                      />
+                    </TableHead>
+                    <TableHead>
+                      <SortableHeader
+                        label="HTML Version"
+                        value="htmlVersion"
+                        filters={filters}
+                        dispatch={dispatch}
+                      />
                     </TableHead>
                     <TableHead>Login Form</TableHead>
                     <TableHead>
-                      <Button variant="ghost" className="h-auto p-0!">
-                        Internal Links
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
+                      <SortableHeader
+                        label="Internal Links"
+                        value="internalLinks"
+                        filters={filters}
+                        dispatch={dispatch}
+                      />
                     </TableHead>
                     <TableHead>
-                      <Button variant="ghost" className="h-auto p-0!">
-                        External Links
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
+                      <SortableHeader
+                        label="External Links"
+                        value="externalLinks"
+                        filters={filters}
+                        dispatch={dispatch}
+                      />
                     </TableHead>
                     <TableHead>
-                      <Button variant="ghost" className="h-auto p-0!">
-                        Broken Links
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
+                      <SortableHeader
+                        label="Broken Links"
+                        value="brokenLinks"
+                        filters={filters}
+                        dispatch={dispatch}
+                      />
+                    </TableHead>
+                    <TableHead>
+                      <SortableHeader
+                        label="Created At"
+                        value="CreatedAt"
+                        filters={filters}
+                        dispatch={dispatch}
+                      />
                     </TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
 
-                <TableBody>
+                <TableBody className={ isFetching ? "opacity-50" : "" }>
                   {data.data.map(url => (
                     <TableRow key={url.ID}
                       className="cursor-pointer hover:bg-muted/50"
@@ -226,6 +272,9 @@ export default function UrlsTable() {
                           <span>0</span>
                         )}
                       </TableCell>
+                      <TableCell>
+                        {url.CreatedAt ? new Date(url.CreatedAt).toLocaleDateString() : "N/A"}
+                      </TableCell>
                       <TableCell className="flex gap-1">
                         {url.status === CrawlStatus.Crawling ? (
                           <Button
@@ -236,7 +285,7 @@ export default function UrlsTable() {
                               onStopCrawling(url.ID);
                             }}
                           >
-                            <Pause className="w-3 h-3" />
+                            <StopCircle className="w-3 h-3" />
                           </Button>
                         ) : (
                           <Button
@@ -280,7 +329,7 @@ export default function UrlsTable() {
                   </Select>
                 </div>
               </div>
-            
+
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
