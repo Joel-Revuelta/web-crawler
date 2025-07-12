@@ -1,4 +1,4 @@
-import { CrawlStatus } from "@/types/urls.types";
+import { CrawlStatus, URL } from "@/types/urls.types";
 import { useReducer } from "react";
 import { z } from "zod";
 
@@ -23,7 +23,7 @@ export const filtersSchema = z.object({
 
 export type FiltersState = z.infer<typeof filtersSchema>;
 
-type FiltersAction =
+export type FiltersAction =
   | { type: "SET_SEARCH"; payload: string }
   | { type: "SET_STATUS"; payload: "all" | CrawlStatus }
   | { type: "SET_HTML_VERSION"; payload: "all" | "html5" | "html4" | "xhtml" }

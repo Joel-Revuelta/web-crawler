@@ -1,5 +1,5 @@
-import { FiltersState } from "@/hooks/useUrlFilters";
-import { Dispatch } from "react";
+import { FiltersAction, FiltersState } from "@/hooks/useUrlFilters";
+import { ActionDispatch } from "react";
 import { Button } from "./ui/button";
 import { ArrowUp, ArrowUpDown } from "lucide-react";
 import { URL } from "@/types/urls.types";
@@ -8,7 +8,7 @@ type SortableHeaderProps = {
   label: string;
   value: keyof URL;
   filters: FiltersState;
-  dispatch: Dispatch<{ type: "SET_SORT"; payload: { sortBy: keyof URL } }>;
+  dispatch: ActionDispatch<[action: FiltersAction]>;
 };
 
 export default function SortableHeader({
