@@ -11,6 +11,8 @@ import { FiltersState, useUrlFilters } from "@/hooks/useUrlFilters";
 import UrlsFilters from "./urls-filters";
 import { CrawlStatus, URL } from "@/types/urls.types";
 import { Badge } from "./ui/badge";
+import { Label } from "./ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 export default function UrlsTable() {
   const [page, setPage] = useState(1);
@@ -89,6 +91,11 @@ export default function UrlsTable() {
 
   const onStartCrawling = (urlId: number) => {
     console.log(`Starting crawling for URL ID: ${urlId}`);
+  }
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPage(1);
   }
 
   return (
@@ -250,38 +257,54 @@ export default function UrlsTable() {
               </Table>
             </div>
 
-            {data.pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
                 <div className="text-sm text-muted-foreground">
                   Showing {(data.pagination.currentPage - 1) * data.pagination.pageSize + 1} to{" "}
                   {Math.min(data.pagination.currentPage * data.pagination.pageSize, data.pagination.totalItems)}
                   {" "}of {data.pagination.totalItems} URLs
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page === 1}
-                    onClick={() => setPage(prev => Math.max(prev - 1, 1))}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </Button>
-                  <span className="text-sm">
-                    Page {page} of {data.pagination.totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page === data.pagination.totalPages}
-                    onClick={() => setPage(prev => Math.min(prev + 1, data.pagination.totalPages))}
-                  >
-                    Next
-                    <ChevronLeft className="w-4 h-4 transform rotate-180" />
-                  </Button>
+                  <Label className="text-sm text-muted-foreground">Rows per page:</Label>
+                  <Select value={pageSize.toString()} onValueChange={value => handlePageSizeChange(Number(value))}>
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            )}
+            
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 1}
+                  onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+                <span className="text-sm">
+                  Page {page} of {data.pagination.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === data.pagination.totalPages}
+                  onClick={() => setPage(prev => Math.min(prev + 1, data.pagination.totalPages))}
+                >
+                  Next
+                  <ChevronLeft className="w-4 h-4 transform rotate-180" />
+                </Button>
+              </div>
+            </div>
           </>
         )}
       </CardContent>
