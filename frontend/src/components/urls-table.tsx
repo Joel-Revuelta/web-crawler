@@ -7,10 +7,9 @@ import {
   Trash2,
   AlertTriangle,
 } from "lucide-react";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, keepPreviousData, useMutation } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import { FiltersState, useUrlFilters } from "@/hooks/useUrlFilters";
-import { Dispatch } from "react";
 import UrlsFilters from "./urls-filters";
 import { URL, CrawlStatus } from "@/types/urls.types";
 import { Button } from "./ui/button";
@@ -23,6 +22,8 @@ import { Badge } from "./ui/badge";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import SortableHeader from "./SortableHeader";
+import { toast } from "sonner";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
 
 export default function UrlsTable() {
   const [page, setPage] = useState(1);
@@ -36,6 +37,19 @@ export default function UrlsTable() {
     queryFn: () => getUrls(page, pageSize, debouncedFilters),
     placeholderData: keepPreviousData
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (urlIds: number[]) => bulkDeleteUrls(urlIds),
+    onSuccess: () => {
+      setSelectedUrls([]);
+      refetch();
+      showDeleteSuccessToast();
+    },
+    onError: (error) => {
+      console.error("Error deleting URLs:", error);
+      showDeleteErrorToast(error instanceof Error ? error.message : "An unexpected error occurred.");
+    }
+  })
 
   useEffect(() => {
     if (page !== 1) {
@@ -60,13 +74,29 @@ export default function UrlsTable() {
       return;
     }
 
-    try {
-      await bulkDeleteUrls(selectedUrls);
-      setSelectedUrls([]);
-      refetch();
-    } catch (error) {
-      console.error("Error deleting URLs:", error);
-    }
+    await deleteMutation.mutateAsync(selectedUrls);
+  }
+
+  const showDeleteSuccessToast = () => {
+    toast.success("Selected URLs deleted successfully!", {
+      duration: 5000,
+      position: "top-right",
+      style: {
+        background: "#e0f2f1",
+        color: "#004d40",
+      }
+    });
+  }
+
+  const showDeleteErrorToast = (message: string) => {
+    toast.error(message, {
+      duration: 5000,
+      position: "top-right",
+      style: {
+        background: "#fdecea",
+        color: "#b91c1c",
+      }
+    });
   }
 
   const onRowClick = (url: URL) => {
@@ -131,10 +161,33 @@ export default function UrlsTable() {
             <RefreshCw className="mr-2 h-4 w-4" />
             Re-run Analysis
           </Button>
-          <Button variant="destructive" size="sm" onClick={deleteUrls} disabled={selectedUrls.length === 0}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete Selected
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              {deleteMutation.isPending ? (
+                <Button variant="destructive" size="sm" disabled>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </Button>
+              ) : (
+                <Button variant="destructive" size="sm" disabled={selectedUrls.length === 0}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Selected
+                </Button>
+              )}
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete the selected URLs? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={deleteUrls}>Continue</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </CardHeader>
 
@@ -370,3 +423,4 @@ export default function UrlsTable() {
     </Card>
   )
 }
+
