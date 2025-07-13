@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import SortableHeader from "./SortableHeader";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
+import { AxiosError } from "axios";
 
 export default function UrlsTable() {
   const [page, setPage] = useState(1);
@@ -47,7 +48,7 @@ export default function UrlsTable() {
     },
     onError: (error) => {
       console.error("Error deleting URLs:", error);
-      showDeleteErrorToast(error instanceof Error ? error.message : "An unexpected error occurred.");
+      showDeleteErrorToast(error instanceof AxiosError ? error.response?.data.message : error instanceof Error ? error.message : "An unexpected error occurred.");
     }
   })
 
@@ -219,7 +220,7 @@ export default function UrlsTable() {
               Error loading URLs
             </h3>
             <p className="text-muted-foreground mt-1 mb-4">
-              {error instanceof Error ? error.message : "An unexpected error occurred."}
+              {error instanceof AxiosError ? error.response?.data.message :  error instanceof Error ? error.message : "An unexpected error occurred."}
             </p>
             <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
               <RefreshCw className="mr-2 h-4 w-4" />

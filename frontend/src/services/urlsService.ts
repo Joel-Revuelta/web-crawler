@@ -38,7 +38,5 @@ export function fetchUrls(page: number, pageSize: number, filters: FiltersState)
 }
 
 export function bulkDeleteUrls(urlIds: number[]) {
-    return api.delete(`/urls`, {
-        data: { ids: urlIds }
-    });
+    return api.post(`/urls/bulk-delete`, { ids: urlIds });
 }
