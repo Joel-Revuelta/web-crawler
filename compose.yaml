@@ -28,8 +28,8 @@ services:
       - "8080:8080"
     volumes:
       - ./backend:/app
-    environment:
-      - DB_SOURCE=mysql_user:1234@tcp(mysql_db:3306)/web_crawler_db?parseTime=true
+    env_file:
+      - ./backend/.env
     depends_on:
       db:
         condition: service_healthy
@@ -49,6 +49,8 @@ services:
       - /app/public
     environment:
       - WATCHPACK_POLLING=true
+    env_file:
+      - ./frontend/.env
 
 volumes:
   mysql_data:

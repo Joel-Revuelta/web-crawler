@@ -20,7 +20,8 @@ export default function UrlsFilters({ filters, dispatch }: UrlsFiltersProps) {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const hasActiveFilters = useMemo(() => {
-    return Object.values(filters).some(value => 
+    const { sortBy, sortOrder, ...rest } = filters;
+    return Object.values(rest).some(value => 
       value !== undefined && value !== null && value !== '' && value !== 'all'
     );
   }, [filters]);

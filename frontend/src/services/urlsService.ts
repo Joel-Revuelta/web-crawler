@@ -4,9 +4,17 @@ import { PaginatedUrls, URL } from "@/types/urls.types";
 import axios from "axios";
 
 const apiUrl = env.NEXT_PUBLIC_API_URL;
+const apiKey = env.NEXT_PUBLIC_API_KEY;
+
+const api = axios.create({
+    baseURL: apiUrl,
+    headers: {
+        'X-API-Key': apiKey,
+    }
+});
 
 export function postNewUrl(newUrl: string) {
-    return axios.post<URL>(`${apiUrl}/urls`, { url: newUrl });
+    return api.post<URL>(`/urls`, { url: newUrl });
 }
 
 export function fetchUrls(page: number, pageSize: number, filters: FiltersState) {
@@ -26,5 +34,5 @@ export function fetchUrls(page: number, pageSize: number, filters: FiltersState)
         }
     });
 
-    return axios.get<PaginatedUrls>(`${apiUrl}/urls`, { params });
+    return api.get<PaginatedUrls>(`/urls`, { params });
 }
