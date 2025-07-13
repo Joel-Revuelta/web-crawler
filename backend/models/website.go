@@ -11,7 +11,7 @@ type StatusType string
 
 const (
 	Queued    StatusType = "queued"
-	Crawling  StatusType = "running"
+	Crawling  StatusType = "crawling"
 	Completed StatusType = "completed"
 	Failed    StatusType = "failed"
 )

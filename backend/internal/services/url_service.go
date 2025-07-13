@@ -1,7 +1,11 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"time"
+	"web-crawler/backend/internal/websocket"
 	"web-crawler/backend/models"
 
 	"gorm.io/gorm"
@@ -12,11 +16,12 @@ var (
 )
 
 type URLService struct {
-	DB *gorm.DB
+	DB  *gorm.DB
+	Hub *websocket.Hub
 }
 
-func NewURLService(db *gorm.DB) *URLService {
-	return &URLService{DB: db}
+func NewURLService(db *gorm.DB, hub *websocket.Hub) *URLService {
+	return &URLService{DB: db, Hub: hub}
 }
 
 func (s *URLService) CreateURL(url string) (*models.Website, error) {
@@ -152,4 +157,53 @@ func (s *URLService) getOrderBy(params GetURLsParams) string {
 	}
 
 	return "id desc"
+}
+
+func (s *URLService) StartScanURL(id int) error {
+	var website models.Website
+	if err := s.DB.First(&website, id).Error; err != nil {
+		return err
+	}
+
+	go s.performScan(&website)
+
+	return nil
+}
+
+func (s *URLService) performScan(website *models.Website) {
+	s.DB.Model(website).Update("crawl_started_at", time.Now())
+	s.updateScanStatus(website.ID, models.Crawling)
+	// Simulate a scan process
+	time.Sleep(5 * time.Second)
+
+	// Simulate finding some data
+	website.Title = "Example Title"
+	website.HTMLVersion = "HTML5"
+	website.ExternalLinks = 5
+	website.HasLoginForm = true
+	website.Status = "completed"
+	now := time.Now()
+	website.CrawlFinishedAt = &now
+
+	if err := s.DB.Save(website).Error; err != nil {
+		s.updateScanStatus(website.ID, models.Failed)
+		return
+	}
+
+	s.updateScanStatus(website.ID, models.Completed)
+}
+
+func (s *URLService) updateScanStatus(id uint, status models.StatusType) {
+	if err := s.DB.Model(&models.Website{}).Where("id = ?", id).Update("status", status).Error; err != nil {
+		fmt.Println("Error updating scan status:", err)
+		return
+	}
+
+	updateData := map[string]any{"id": id, "status": status}
+	message, err := json.Marshal(updateData)
+	if err != nil {
+		fmt.Println("Error marshalling scan status:", err)
+		return
+	}
+	s.Hub.Broadcast(message)
 }

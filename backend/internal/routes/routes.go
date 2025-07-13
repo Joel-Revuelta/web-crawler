@@ -6,12 +6,13 @@ import (
 	"web-crawler/backend/internal/handlers"
 	"web-crawler/backend/internal/middleware"
 	"web-crawler/backend/internal/services"
+	"web-crawler/backend/internal/websocket"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func SetupRoutes(db *gorm.DB, cfg config.Config) *gin.Engine {
+func SetupRoutes(db *gorm.DB, cfg config.Config, hub *websocket.Hub) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
@@ -22,7 +23,7 @@ func SetupRoutes(db *gorm.DB, cfg config.Config) *gin.Engine {
 
 	r.Use(middleware.CORSMiddleware())
 
-	urlService := services.NewURLService(db)
+	urlService := services.NewURLService(db, hub)
 	urlHandler := handlers.NewURLHandler(urlService)
 
 	api := r.Group("/api/v1")
@@ -32,7 +33,12 @@ func SetupRoutes(db *gorm.DB, cfg config.Config) *gin.Engine {
 		api.GET("/urls", urlHandler.GetURLs)
 		api.DELETE("/urls/:id", urlHandler.DeleteURLById)
 		api.POST("/urls/bulk-delete", urlHandler.BulkDeleteURLs)
+		api.POST("/urls/:id/scan", urlHandler.ScanURL)
 	}
+
+	r.GET("/ws", func(c *gin.Context) {
+		websocket.ServeWs(hub, c.Writer, c.Request)
+	})
 
 	return r
 }
