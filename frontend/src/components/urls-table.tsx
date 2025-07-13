@@ -57,6 +57,14 @@ export default function UrlsTable() {
     }
   }, [debouncedFilters]);
 
+  useEffect(() => {
+    selectedUrls.forEach(urlId => {
+      if (!data?.data.some(url => url.ID === urlId)) {
+        setSelectedUrls(prev => prev.filter(id => id !== urlId));
+      }
+    });
+  }, [data]);
+
   const getUrls = async (page: number, pageSize: number, filters: FiltersState) => {
     const response = await fetchUrls(page, pageSize, filters);
     console.log("Fetched URLs:", response.data);
