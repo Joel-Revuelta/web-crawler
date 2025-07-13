@@ -27,6 +27,8 @@ func SetupRoutes(db *gorm.DB, cfg config.Config) *gin.Engine {
 		urlHandler := &handlers.URLHandler{DB: db}
 		api.POST("/urls", urlHandler.CreateURL)
 		api.GET("/urls", urlHandler.GetURLs)
+		api.DELETE("/urls/:id", urlHandler.DeleteURLById)
+		api.DELETE("/urls", urlHandler.BulkDeleteURLs)
 	}
 
 	return r

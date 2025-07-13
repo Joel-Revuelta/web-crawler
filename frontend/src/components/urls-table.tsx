@@ -17,7 +17,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Checkbox } from "./ui/checkbox";
-import { fetchUrls } from "@/services/urlsService";
+import { bulkDeleteUrls, fetchUrls } from "@/services/urlsService";
 import { useState, useEffect } from "react";
 import { Badge } from "./ui/badge";
 import { Label } from "./ui/label";
@@ -31,7 +31,7 @@ export default function UrlsTable() {
   const { filters, dispatch } = useUrlFilters();
   const debouncedFilters = useDebounce(filters, 300);
 
-  const { isPending, isError, error, data, isFetching, isPlaceholderData } = useQuery({
+  const { isPending, isError, error, data, isFetching, refetch } = useQuery({
     queryKey: ["urls", page, pageSize, debouncedFilters],
     queryFn: () => getUrls(page, pageSize, debouncedFilters),
     placeholderData: keepPreviousData
@@ -56,7 +56,17 @@ export default function UrlsTable() {
   }
 
   const deleteUrls = async () => {
-    console.log("Deleting URLs...");
+    if (selectedUrls.length === 0) {
+      return;
+    }
+
+    try {
+      await bulkDeleteUrls(selectedUrls);
+      setSelectedUrls([]);
+      refetch();
+    } catch (error) {
+      console.error("Error deleting URLs:", error);
+    }
   }
 
   const onRowClick = (url: URL) => {

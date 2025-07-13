@@ -157,3 +157,52 @@ func applyRangeFilter(c *gin.Context, query *gorm.DB, paramName, dbField, operat
 		query.Where(dbField+" "+operator+" ?", value)
 	}
 }
+
+func (h *URLHandler) DeleteURLById(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL ID"})
+		return
+	}
+
+	var website models.Website
+	if result := h.DB.First(&website, id); result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "URL not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	if result := h.DB.Delete(&website); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete URL"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "URL deleted successfully"})
+}
+
+func (h *URLHandler) BulkDeleteURLs(c *gin.Context) {
+	var ids struct {
+		IDs []int `json:"ids" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&ids); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	if len(ids.IDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No IDs provided"})
+		return
+	}
+
+	if result := h.DB.Where("id IN ?", ids.IDs).Delete(&models.Website{}); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete URLs"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "URLs deleted successfully"})
+}

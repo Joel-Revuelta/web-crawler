@@ -36,3 +36,9 @@ export function fetchUrls(page: number, pageSize: number, filters: FiltersState)
 
     return api.get<PaginatedUrls>(`/urls`, { params });
 }
+
+export function bulkDeleteUrls(urlIds: number[]) {
+    return api.delete(`/urls`, {
+        data: { ids: urlIds }
+    });
+}
