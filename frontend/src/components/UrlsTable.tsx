@@ -10,13 +10,13 @@ import {
 import { useQuery, keepPreviousData, useMutation } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import { FiltersState, useUrlFilters } from "@/hooks/useUrlFilters";
-import UrlsFilters from "./urls-filters";
+import UrlsFilters from "./UrlsFilters";
 import { URL, CrawlStatus } from "@/types/urls.types";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Checkbox } from "./ui/checkbox";
-import { bulkDeleteUrls, fetchUrls } from "@/services/urlsService";
+import { bulkDeleteUrls, fetchUrls, startScanUrl } from "@/services/urlsService";
 import { useState, useEffect } from "react";
 import { Badge } from "./ui/badge";
 import { Label } from "./ui/label";
@@ -68,7 +68,6 @@ export default function UrlsTable() {
 
   const getUrls = async (page: number, pageSize: number, filters: FiltersState) => {
     const response = await fetchUrls(page, pageSize, filters);
-    console.log("Fetched URLs:", response.data);
     return response.data;
   }
 
@@ -150,7 +149,27 @@ export default function UrlsTable() {
   }
 
   const onStartCrawling = (urlId: number) => {
-    console.log(`Starting crawling for URL ID: ${urlId}`);
+    startScanUrl(urlId).then(() => {
+      toast.success("Crawling started successfully!", {
+        duration: 5000,
+        position: "top-right",
+        style: {
+          background: "#e0f2f1",
+          color: "#004d40",
+        }
+      });
+      // refetch();
+    }).catch(error => {
+      console.error("Error starting crawl:", error);
+      toast.error("Failed to start crawling. Please try again.", {
+        duration: 5000,
+        position: "top-right",
+        style: {
+          background: "#fdecea",
+          color: "#b91c1c",
+        }
+      });
+    });
   }
 
   const handlePageSizeChange = (newPageSize: number) => {

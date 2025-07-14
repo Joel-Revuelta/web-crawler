@@ -8,7 +8,7 @@ require (
 	gorm.io/gorm v1.30.0
 )
 
-require github.com/gorilla/websocket v1.5.3 // indirect
+require github.com/gorilla/websocket v1.5.3
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect

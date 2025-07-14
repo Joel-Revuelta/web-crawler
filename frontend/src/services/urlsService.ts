@@ -18,7 +18,6 @@ export function postNewUrl(newUrl: string) {
 }
 
 export function fetchUrls(page: number, pageSize: number, filters: FiltersState) {
-    console.log("Fetching URLs with filters:", filters);
     const params = new URLSearchParams({
         page: page.toString(),
         limit: pageSize.toString(),
@@ -39,4 +38,8 @@ export function fetchUrls(page: number, pageSize: number, filters: FiltersState)
 
 export function bulkDeleteUrls(urlIds: number[]) {
     return api.post(`/urls/bulk-delete`, { ids: urlIds });
+}
+
+export function startScanUrl(urlId: number) {
+    return api.post(`/urls/${urlId}/scan`);
 }
