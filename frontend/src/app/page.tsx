@@ -5,11 +5,11 @@ import UrlsTable from "@/components/UrlsTable";
 import WebSocketManager from "@/components/WebSocketManager";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const queryClient = new QueryClient();
+
 
 export default function Home() {
   return (
-    <QueryClientProvider client={queryClient}>
+    <div>
       <WebSocketManager />
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex flex-col space-y-4">
@@ -23,6 +23,6 @@ export default function Home() {
 
         <UrlsTable />
       </div>
-    </QueryClientProvider>
+    </div>
   );
 }

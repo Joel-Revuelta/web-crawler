@@ -1,3 +1,5 @@
+"use client"
+
 import {
   ChevronLeft,
   Loader2,
@@ -25,6 +27,8 @@ import SortableHeader from "./SortableHeader";
 import { showErrorToast, showSuccessToast } from "@/lib/toasts";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
 import { AxiosError } from "axios";
+import { useRouter } from "next/navigation";
+import { getStatusBadge } from "@/lib/urls";
 
 export default function UrlsTable() {
   const [page, setPage] = useState(1);
@@ -32,6 +36,7 @@ export default function UrlsTable() {
   const [selectedUrls, setSelectedUrls] = useState<number[]>([]);
   const { filters, dispatch } = useUrlFilters();
   const debouncedFilters = useDebounce(filters, 300);
+  const router = useRouter();
 
   const { isPending, isError, error, data, isFetching, refetch } = useQuery({
     queryKey: ["urls", page, pageSize, debouncedFilters],
@@ -93,7 +98,7 @@ export default function UrlsTable() {
   }
 
   const onRowClick = (url: URL) => {
-    console.log(`Row clicked: ${url.url}`);
+    router.push(`/${url.ID}`);
   }
 
   const handleSelectAll = (checked: boolean) => {
@@ -112,22 +117,6 @@ export default function UrlsTable() {
         return prev.filter(id => id !== urlId);
       }
     });
-  }
-
-  const getStatusBadge = (status: CrawlStatus) => {
-    const colors = {
-      [CrawlStatus.Queued]: "bg-yellow-100 text-yellow-800",
-      [CrawlStatus.Completed]: "bg-green-100 text-green-800",
-      [CrawlStatus.Failed]: "bg-red-100 text-red-800",
-      [CrawlStatus.Crawling]: "bg-blue-100 text-blue-800",
-      [CrawlStatus.Cancelled]: "bg-gray-100 text-gray-800"
-    };
-
-    return (
-      <Badge className={`text-xs font-medium ${colors[status]}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    )
   }
 
   const onStopCrawling = (urlId: number) => {

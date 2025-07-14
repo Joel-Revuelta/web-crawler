@@ -5,19 +5,21 @@ export interface PaginatedUrls {
 }
 
 export interface URL {
-    ID:            number;
-    CreatedAt:     Date;
-    UpdatedAt:     Date;
-    DeletedAt:     Date | null;
-    url:           string;
-    status:        CrawlStatus;
-    htmlVersion:   string;
-    title:         string;
-    headingsCount: HeadingsCount;
-    internalLinks: number;
-    externalLinks: number;
-    brokenLinks:   number;
-    hasLoginForm:  boolean;
+    ID:               number;
+    CreatedAt:        Date;
+    UpdatedAt:        Date;
+    DeletedAt:        Date | null;
+    url:              string;
+    status:           CrawlStatus;
+    htmlVersion:      string;
+    title:            string;
+    headingsCount:    HeadingsCount;
+    internalLinks:    number;
+    externalLinks:    number;
+    brokenLinks:      number;
+    hasLoginForm:     boolean;
+    crawlStartedAt:   Date | null;
+    crawlCompletedAt: Date | null;
 }
 
 export interface HeadingsCount {
