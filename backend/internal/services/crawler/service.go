@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -48,6 +49,11 @@ func (s *Service) ProcessURL(website *models.Website) error {
 	}
 
 	c.OnResponse(func(r *colly.Response) {
+		if r.StatusCode >= 400 {
+			log.Printf("Crawl failed for %s with status code: %d", r.Request.URL, r.StatusCode)
+			atomic.StoreInt32(&result.crawlFailed, 1)
+			return
+		}
 		result.htmlVersion = detectHTMLVersion(r.Body)
 	})
 
@@ -107,7 +113,7 @@ func (s *Service) ProcessURL(website *models.Website) error {
 	c.OnScraped(func(r *colly.Response) {
 		log.Printf("Crawl completed for %s", r.Request.URL)
 
-		if atomic.LoadInt32(&result.crawlFailed) == 1 {
+		if atomic.LoadInt32(&result.crawlFailed) != 0 {
 			website.Status = models.Failed
 		} else {
 			website.Status = models.Completed
@@ -144,6 +150,10 @@ func (s *Service) ProcessURL(website *models.Website) error {
 	}
 
 	c.Wait()
+
+	if atomic.LoadInt32(&result.crawlFailed) != 0 {
+		return errors.New("crawling failed")
+	}
 	return nil
 }
 
@@ -165,7 +175,7 @@ func detectHTMLVersion(body []byte) string {
 		return "HTML5"
 	}
 	if strings.Contains(bodyStr, "html 4.01") {
-		return "HTML 4.01"
+		return "HTML4"
 	}
 	if strings.Contains(bodyStr, "xhtml") {
 		return "XHTML"
