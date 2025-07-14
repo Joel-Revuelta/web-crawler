@@ -14,6 +14,7 @@ const (
 	Crawling  StatusType = "crawling"
 	Completed StatusType = "completed"
 	Failed    StatusType = "failed"
+	Cancelled StatusType = "cancelled"
 )
 
 // Website represents a website to be crawled.

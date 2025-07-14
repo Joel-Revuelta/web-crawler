@@ -15,6 +15,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var ErrCrawlCancelled = errors.New("crawl cancelled by user")
+
 type Service struct {
 	DB *gorm.DB
 }
@@ -23,7 +25,7 @@ func NewService(db *gorm.DB) *Service {
 	return &Service{DB: db}
 }
 
-func (s *Service) ProcessURL(website *models.Website) error {
+func (s *Service) ProcessURL(website *models.Website, cancelChan <-chan struct{}) error {
 	c := colly.NewCollector(
 		colly.UserAgent("web-crawler"),
 		colly.Async(true),
@@ -33,6 +35,11 @@ func (s *Service) ProcessURL(website *models.Website) error {
 		DomainGlob:  "*",
 		Parallelism: 8,
 	})
+
+	var (
+		requestProcessed int32
+		requestCount     int32
+	)
 
 	baseURL, err := url.Parse(website.URL)
 	if err != nil {
@@ -48,7 +55,19 @@ func (s *Service) ProcessURL(website *models.Website) error {
 		headings: make(map[string]int32),
 	}
 
+	c.OnRequest(func(r *colly.Request) {
+		select {
+		case <-cancelChan:
+			log.Printf("Cancellation requested for %s. Aborting request.", r.URL.String())
+			r.Abort()
+			atomic.StoreInt32(&result.crawlCancelled, 1)
+		default:
+			atomic.AddInt32(&requestCount, 1)
+		}
+	})
+
 	c.OnResponse(func(r *colly.Response) {
+		atomic.AddInt32(&requestProcessed, 1)
 		if r.StatusCode >= 400 {
 			log.Printf("Crawl failed for %s with status code: %d", r.Request.URL, r.StatusCode)
 			atomic.StoreInt32(&result.crawlFailed, 1)
@@ -107,6 +126,7 @@ func (s *Service) ProcessURL(website *models.Website) error {
 	c.OnError(func(r *colly.Response, err error) {
 		log.Printf("Crawl failed for %s (status code: %d): %v", r.Request.URL, r.StatusCode, err)
 		atomic.StoreInt32(&result.crawlFailed, 1)
+		atomic.AddInt32(&requestProcessed, 1)
 	})
 
 	// Finalize and save results after the crawl is complete
@@ -115,6 +135,8 @@ func (s *Service) ProcessURL(website *models.Website) error {
 
 		if atomic.LoadInt32(&result.crawlFailed) != 0 {
 			website.Status = models.Failed
+		} else if atomic.LoadInt32(&result.crawlCancelled) != 0 {
+			website.Status = models.Cancelled
 		} else {
 			website.Status = models.Completed
 		}
@@ -151,6 +173,10 @@ func (s *Service) ProcessURL(website *models.Website) error {
 
 	c.Wait()
 
+	if atomic.LoadInt32(&result.crawlCancelled) != 0 {
+		return ErrCrawlCancelled
+	}
+
 	if atomic.LoadInt32(&result.crawlFailed) != 0 {
 		return errors.New("crawling failed")
 	}
@@ -158,15 +184,16 @@ func (s *Service) ProcessURL(website *models.Website) error {
 }
 
 type crawlResult struct {
-	mu            sync.RWMutex
-	pageTitle     string
-	htmlVersion   string
-	headings      map[string]int32
-	internalLinks int32
-	externalLinks int32
-	brokenLinks   int32
-	hasLoginForm  int32
-	crawlFailed   int32
+	mu             sync.RWMutex
+	pageTitle      string
+	htmlVersion    string
+	headings       map[string]int32
+	internalLinks  int32
+	externalLinks  int32
+	brokenLinks    int32
+	hasLoginForm   int32
+	crawlFailed    int32
+	crawlCancelled int32
 }
 
 func detectHTMLVersion(body []byte) string {

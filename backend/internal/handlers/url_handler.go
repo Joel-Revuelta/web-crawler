@@ -238,3 +238,33 @@ func (h *URLHandler) ScanURL(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Scan started successfully"})
 }
+
+func (h *URLHandler) CancelScanURL(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   err.Error(),
+			"message": "Invalid URL ID",
+		})
+		return
+	}
+
+	err = h.URLService.CancelScanURL(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error":   err.Error(),
+				"message": "URL not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   err.Error(),
+			"message": "Failed to cancel scan",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Scan cancelled successfully"})
+}

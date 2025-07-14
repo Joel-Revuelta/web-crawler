@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 	"web-crawler/backend/internal/services/crawler"
 	"web-crawler/backend/internal/websocket"
@@ -17,13 +18,20 @@ var (
 )
 
 type URLService struct {
-	DB      *gorm.DB
-	Hub     *websocket.Hub
-	Crawler *crawler.Service
+	DB             *gorm.DB
+	Hub            *websocket.Hub
+	Crawler        *crawler.Service
+	cancelations   map[uint]chan struct{}
+	cancelationsMu sync.Mutex
 }
 
 func NewURLService(db *gorm.DB, hub *websocket.Hub, crawler *crawler.Service) *URLService {
-	return &URLService{DB: db, Hub: hub, Crawler: crawler}
+	return &URLService{
+		DB:           db,
+		Hub:          hub,
+		Crawler:      crawler,
+		cancelations: make(map[uint]chan struct{}),
+	}
 }
 
 func (s *URLService) CreateURL(url string) (*models.Website, error) {
@@ -178,20 +186,39 @@ func (s *URLService) StartScanURL(id int) error {
 		return err
 	}
 
-	go s.performScan(&website)
+	s.cancelationsMu.Lock()
+	if _, exists := s.cancelations[website.ID]; exists {
+		s.cancelationsMu.Unlock()
+		return errors.New("scan already in progress")
+	}
+	cancelChan := make(chan struct{})
+	s.cancelations[website.ID] = cancelChan
+	s.cancelationsMu.Unlock()
+
+	go s.performScan(&website, cancelChan)
 
 	return nil
 }
 
-func (s *URLService) performScan(website *models.Website) {
+func (s *URLService) performScan(website *models.Website, cancelChan chan struct{}) {
+	defer func() {
+		s.cancelationsMu.Lock()
+		delete(s.cancelations, website.ID)
+		s.cancelationsMu.Unlock()
+	}()
+
 	s.DB.Model(website).Update("crawl_started_at", time.Now())
 	s.updateScanStatus(website.ID, models.Crawling)
 
-	err := s.Crawler.ProcessURL(website)
+	err := s.Crawler.ProcessURL(website, cancelChan)
 	now := time.Now()
 	website.CrawlFinishedAt = &now
 	if err != nil {
-		s.updateScanStatus(website.ID, models.Failed)
+		if errors.Is(err, crawler.ErrCrawlCancelled) {
+			s.updateScanStatus(website.ID, models.Cancelled)
+		} else {
+			s.updateScanStatus(website.ID, models.Failed)
+		}
 		return
 	}
 
@@ -216,4 +243,18 @@ func (s *URLService) updateScanStatus(id uint, status models.StatusType) {
 		return
 	}
 	s.Hub.Broadcast(message)
+}
+
+func (s *URLService) CancelScanURL(id int) error {
+	uintID := uint(id)
+	s.cancelationsMu.Lock()
+	defer s.cancelationsMu.Unlock()
+
+	if cancelChan, exists := s.cancelations[uintID]; exists {
+		close(cancelChan)
+		delete(s.cancelations, uintID)
+		return nil
+	}
+
+	return errors.New("no active scan found to cancel")
 }

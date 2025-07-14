@@ -16,13 +16,13 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Checkbox } from "./ui/checkbox";
-import { bulkDeleteUrls, fetchUrls, startScanUrl } from "@/services/urlsService";
+import { bulkDeleteUrls, cancelScanUrl, fetchUrls, startScanUrl } from "@/services/urlsService";
 import { useState, useEffect } from "react";
 import { Badge } from "./ui/badge";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import SortableHeader from "./SortableHeader";
-import { toast } from "sonner";
+import { showErrorToast, showSuccessToast } from "@/lib/toasts";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
 import { AxiosError } from "axios";
 
@@ -44,11 +44,11 @@ export default function UrlsTable() {
     onSuccess: () => {
       setSelectedUrls([]);
       refetch();
-      showDeleteSuccessToast();
+      showSuccessToast("Selected URLs deleted successfully!");
     },
     onError: (error) => {
       console.error("Error deleting URLs:", error);
-      showDeleteErrorToast(error instanceof AxiosError ? error.response?.data.message : error instanceof Error ? error.message : "An unexpected error occurred.");
+      showErrorToast(error instanceof AxiosError ? error.response?.data.message : error instanceof Error ? error.message : "An unexpected error occurred.");
     }
   })
 
@@ -85,28 +85,6 @@ export default function UrlsTable() {
     await deleteMutation.mutateAsync(selectedUrls);
   }
 
-  const showDeleteSuccessToast = () => {
-    toast.success("Selected URLs deleted successfully!", {
-      duration: 5000,
-      position: "top-right",
-      style: {
-        background: "#e0f2f1",
-        color: "#004d40",
-      }
-    });
-  }
-
-  const showDeleteErrorToast = (message: string) => {
-    toast.error(message, {
-      duration: 5000,
-      position: "top-right",
-      style: {
-        background: "#fdecea",
-        color: "#b91c1c",
-      }
-    });
-  }
-
   const onRowClick = (url: URL) => {
     console.log(`Row clicked: ${url.url}`);
   }
@@ -134,7 +112,8 @@ export default function UrlsTable() {
       [CrawlStatus.Queued]: "bg-yellow-100 text-yellow-800",
       [CrawlStatus.Completed]: "bg-green-100 text-green-800",
       [CrawlStatus.Failed]: "bg-red-100 text-red-800",
-      [CrawlStatus.Crawling]: "bg-blue-100 text-blue-800"
+      [CrawlStatus.Crawling]: "bg-blue-100 text-blue-800",
+      [CrawlStatus.Cancelled]: "bg-gray-100 text-gray-800"
     };
 
     return (
@@ -145,30 +124,20 @@ export default function UrlsTable() {
   }
 
   const onStopCrawling = (urlId: number) => {
-    console.log(`Stopping crawling for URL ID: ${urlId}`);
+    cancelScanUrl(urlId).then(() => {
+      showSuccessToast("Crawling stopped successfully!");
+    }).catch(error => {
+      console.error("Error stopping crawl:", error);
+      showErrorToast("Failed to stop crawling. Please try again.");
+    });
   }
 
   const onStartCrawling = (urlId: number) => {
     startScanUrl(urlId).then(() => {
-      toast.success("Crawling started successfully!", {
-        duration: 5000,
-        position: "top-right",
-        style: {
-          background: "#e0f2f1",
-          color: "#004d40",
-        }
-      });
-      // refetch();
+      showSuccessToast("Crawling started successfully!");
     }).catch(error => {
       console.error("Error starting crawl:", error);
-      toast.error("Failed to start crawling. Please try again.", {
-        duration: 5000,
-        position: "top-right",
-        style: {
-          background: "#fdecea",
-          color: "#b91c1c",
-        }
-      });
+      showErrorToast("Failed to start crawling. Please try again.");
     });
   }
 
@@ -368,26 +337,12 @@ export default function UrlsTable() {
                       </TableCell>
                       <TableCell className="flex gap-1">
                         {url.status === CrawlStatus.Crawling ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={e => {
-                              e.stopPropagation();
-                              onStopCrawling(url.ID);
-                            }}
-                          >
-                            <StopCircle className="w-3 h-3" />
+                          <Button variant="outline" size="icon" onClick={() => onStopCrawling(url.ID)}>
+                            <StopCircle className="w-4 h-4" />
                           </Button>
                         ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={e => {
-                              e.stopPropagation();
-                              onStartCrawling(url.ID);
-                            }}
-                          >
-                            <Play className="w-3 h-3" />
+                          <Button variant="outline" size="icon" onClick={() => onStartCrawling(url.ID)}>
+                            <Play className="w-4 h-4" />
                           </Button>
                         )}
                       </TableCell>

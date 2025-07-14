@@ -34,6 +34,7 @@ export enum CrawlStatus {
     Crawling = "crawling",
     Completed = "completed",
     Failed = "failed",
+    Cancelled = "cancelled"
 }
 
 export interface Pagination {

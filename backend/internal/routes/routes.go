@@ -37,6 +37,7 @@ func SetupRoutes(db *gorm.DB, cfg config.Config, hub *websocket.Hub) *gin.Engine
 		api.DELETE("/urls/:id", urlHandler.DeleteURLById)
 		api.POST("/urls/bulk-delete", urlHandler.BulkDeleteURLs)
 		api.POST("/urls/:id/scan", urlHandler.ScanURL)
+		api.POST("/urls/:id/cancel-scan", urlHandler.CancelScanURL)
 	}
 
 	r.GET("/ws", func(c *gin.Context) {

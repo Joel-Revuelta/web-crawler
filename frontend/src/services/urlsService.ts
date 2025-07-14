@@ -47,3 +47,7 @@ export function bulkDeleteUrls(urlIds: number[]) {
 export function startScanUrl(urlId: number) {
     return api.post(`/urls/${urlId}/scan`);
 }
+
+export function cancelScanUrl(urlId: number) {
+    return api.post(`/urls/${urlId}/cancel-scan`);
+}

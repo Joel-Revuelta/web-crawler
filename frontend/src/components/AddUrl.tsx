@@ -12,6 +12,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { postNewUrl } from "@/services/urlsService";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
+import { showErrorToast, showSuccessToast } from "@/lib/toasts";
 
 const formSchema = z.object({
   url: z.url()
@@ -36,7 +37,7 @@ export default function AddURL() {
   function onSubmit(data: z.infer<typeof formSchema>) {
     mutation.mutate(data.url, {
       onSuccess: () => {
-        showSuccessToast();
+        showSuccessToast("URL added successfully!");
         queryClient.invalidateQueries({
           queryKey: ['urls']
         })
@@ -49,28 +50,6 @@ export default function AddURL() {
         } else {
           showErrorToast("An unexpected error occurred. Please try again.");
         }
-      }
-    });
-  }
-
-  function showSuccessToast() {
-    toast.success("URL added successfully!", {
-      duration: 5000,
-      position: "top-right",
-      style: {
-        background: "#e0f2f1",
-        color: "#004d40",
-      }
-    });
-  }
-
-  function showErrorToast(message: string) {
-    toast.error(message, {
-      duration: 5000,
-      position: "top-right",
-      style: {
-        background: "#fdecea",
-        color: "#b91c1c",
       }
     });
   }
