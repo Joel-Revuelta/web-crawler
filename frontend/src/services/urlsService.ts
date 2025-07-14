@@ -51,3 +51,7 @@ export function startScanUrl(urlId: number) {
 export function cancelScanUrl(urlId: number) {
     return api.post(`/urls/${urlId}/cancel-scan`);
 }
+
+export function bulkScanUrls(urlIds: number[]) {
+    return api.post(`/urls/bulk-scan`, { ids: urlIds });
+}

@@ -38,6 +38,7 @@ func SetupRoutes(db *gorm.DB, cfg config.Config, hub *websocket.Hub) *gin.Engine
 		api.POST("/urls/bulk-delete", urlHandler.BulkDeleteURLs)
 		api.POST("/urls/:id/scan", urlHandler.ScanURL)
 		api.POST("/urls/:id/cancel-scan", urlHandler.CancelScanURL)
+		api.POST("/urls/bulk-scan", urlHandler.BulkScanURLs)
 	}
 
 	r.GET("/ws", func(c *gin.Context) {

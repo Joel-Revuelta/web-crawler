@@ -16,7 +16,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Checkbox } from "./ui/checkbox";
-import { bulkDeleteUrls, cancelScanUrl, fetchUrls, startScanUrl } from "@/services/urlsService";
+import { bulkDeleteUrls, bulkScanUrls, cancelScanUrl, fetchUrls, startScanUrl } from "@/services/urlsService";
 import { useState, useEffect } from "react";
 import { Badge } from "./ui/badge";
 import { Label } from "./ui/label";
@@ -74,7 +74,14 @@ export default function UrlsTable() {
   const allCurrentPageSelected = data?.data && data.data.length > 0 && selectedUrls.length === data.data.length;
 
   const rerunAnalysis = async () => {
-    console.log("Rerunning analysis...");
+    try {
+      await bulkScanUrls(selectedUrls);
+      showSuccessToast("Analysis re-run successfully!");
+      // refetch();
+    } catch (error) {
+      console.error("Error re-running analysis:", error);
+      showErrorToast("Failed to re-run analysis. Please try again.");
+    }
   }
 
   const deleteUrls = async () => {

@@ -268,3 +268,51 @@ func (h *URLHandler) CancelScanURL(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Scan cancelled successfully"})
 }
+
+func (h *URLHandler) BulkScanURLs(c *gin.Context) {
+	var ids struct {
+		IDs []int `json:"ids" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&ids); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   err.Error(),
+			"message": "Invalid request body",
+		})
+		return
+	}
+
+	type failedScan struct {
+		ID    int    `json:"id"`
+		Error string `json:"error"`
+	}
+	var failures []failedScan
+	var successes int
+
+	for _, id := range ids.IDs {
+		if err := h.URLService.StartScanURL(id); err != nil {
+			failures = append(failures, failedScan{ID: id, Error: err.Error()})
+		} else {
+			successes++
+		}
+	}
+
+	if len(failures) > 0 {
+		if successes == 0 {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message":  "Failed to start scan for all provided URLs.",
+				"failures": failures,
+			})
+			return
+		}
+		c.JSON(http.StatusMultiStatus, gin.H{
+			"message":      "Bulk scan process completed with some failures.",
+			"successCount": successes,
+			"failureCount": len(failures),
+			"failures":     failures,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Bulk scan started successfully for all URLs"})
+}
