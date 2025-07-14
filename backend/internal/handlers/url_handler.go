@@ -117,6 +117,35 @@ func getPagination(c *gin.Context) (page, limit int) {
 	return page, limit
 }
 
+func (h *URLHandler) GetURLByID(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   err.Error(),
+			"message": "Invalid URL ID",
+		})
+		return
+	}
+
+	website, err := h.URLService.GetURLByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error":   err.Error(),
+				"message": "URL not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   err.Error(),
+			"message": "Failed to retrieve URL",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, website)
+}
+
 func (h *URLHandler) DeleteURLById(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)

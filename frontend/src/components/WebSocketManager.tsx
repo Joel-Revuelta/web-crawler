@@ -4,6 +4,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { PaginatedUrls, URL } from '@/types/urls.types';
+import { fetchUrlById } from '@/services/urlsService';
 
 export default function WebSocketManager() {
   const { lastMessage } = useWebSocket();
@@ -11,19 +12,29 @@ export default function WebSocketManager() {
 
   useEffect(() => {
     if (lastMessage) {
-      console.log("Received WebSocket message:", lastMessage);
-      queryClient.setQueriesData<PaginatedUrls>({ queryKey: ['urls'] }, (oldData) => {
-        if (!oldData) return oldData;
+      const updateUrlData = async () => {
+        try {
+          const response = await fetchUrlById(lastMessage.id);
+          const updatedUrl = response.data;
 
-        const newData = oldData.data.map((url: URL) => {
-          if (url.ID === lastMessage.id) {
-            return { ...url, status: lastMessage.status };
-          }
-          return url;
-        });
+          queryClient.setQueriesData<PaginatedUrls>({ queryKey: ['urls'] }, (oldData) => {
+            if (!oldData) return oldData;
 
-        return { ...oldData, data: newData };
-      });
+            const newData = oldData.data.map((url: URL) => {
+              if (url.ID === updatedUrl.ID) {
+                return updatedUrl;
+              }
+              return url;
+            });
+
+            return { ...oldData, data: newData };
+          });
+        } catch (error) {
+          console.error("Failed to fetch URL by ID:", error);
+        }
+      };
+
+      updateUrlData();
     }
   }, [lastMessage, queryClient]);
 

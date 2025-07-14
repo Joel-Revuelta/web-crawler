@@ -6,6 +6,7 @@ import (
 	"web-crawler/backend/internal/handlers"
 	"web-crawler/backend/internal/middleware"
 	"web-crawler/backend/internal/services"
+	"web-crawler/backend/internal/services/crawler"
 	"web-crawler/backend/internal/websocket"
 
 	"github.com/gin-gonic/gin"
@@ -23,7 +24,8 @@ func SetupRoutes(db *gorm.DB, cfg config.Config, hub *websocket.Hub) *gin.Engine
 
 	r.Use(middleware.CORSMiddleware())
 
-	urlService := services.NewURLService(db, hub)
+	crawlerService := crawler.NewService(db)
+	urlService := services.NewURLService(db, hub, crawlerService)
 	urlHandler := handlers.NewURLHandler(urlService)
 
 	api := r.Group("/api/v1")
@@ -31,6 +33,7 @@ func SetupRoutes(db *gorm.DB, cfg config.Config, hub *websocket.Hub) *gin.Engine
 	{
 		api.POST("/urls", urlHandler.CreateURL)
 		api.GET("/urls", urlHandler.GetURLs)
+		api.GET("/urls/:id", urlHandler.GetURLByID)
 		api.DELETE("/urls/:id", urlHandler.DeleteURLById)
 		api.POST("/urls/bulk-delete", urlHandler.BulkDeleteURLs)
 		api.POST("/urls/:id/scan", urlHandler.ScanURL)

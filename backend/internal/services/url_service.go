@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"web-crawler/backend/internal/services/crawler"
 	"web-crawler/backend/internal/websocket"
 	"web-crawler/backend/models"
 
@@ -16,12 +17,13 @@ var (
 )
 
 type URLService struct {
-	DB  *gorm.DB
-	Hub *websocket.Hub
+	DB      *gorm.DB
+	Hub     *websocket.Hub
+	Crawler *crawler.Service
 }
 
-func NewURLService(db *gorm.DB, hub *websocket.Hub) *URLService {
-	return &URLService{DB: db, Hub: hub}
+func NewURLService(db *gorm.DB, hub *websocket.Hub, crawler *crawler.Service) *URLService {
+	return &URLService{DB: db, Hub: hub, Crawler: crawler}
 }
 
 func (s *URLService) CreateURL(url string) (*models.Website, error) {
@@ -77,6 +79,17 @@ func (s *URLService) GetURLs(params GetURLsParams) ([]models.Website, int64, err
 	}
 
 	return websites, totalItems, nil
+}
+
+func (s *URLService) GetURLByID(id int) (*models.Website, error) {
+	var website models.Website
+	if err := s.DB.First(&website, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, gorm.ErrRecordNotFound
+		}
+		return nil, err
+	}
+	return &website, nil
 }
 
 func (s *URLService) DeleteURLByID(id int) error {
@@ -173,17 +186,14 @@ func (s *URLService) StartScanURL(id int) error {
 func (s *URLService) performScan(website *models.Website) {
 	s.DB.Model(website).Update("crawl_started_at", time.Now())
 	s.updateScanStatus(website.ID, models.Crawling)
-	// Simulate a scan process
-	time.Sleep(5 * time.Second)
 
-	// Simulate finding some data
-	website.Title = "Example Title"
-	website.HTMLVersion = "HTML5"
-	website.ExternalLinks = 5
-	website.HasLoginForm = true
-	website.Status = "completed"
+	err := s.Crawler.ProcessURL(website)
 	now := time.Now()
 	website.CrawlFinishedAt = &now
+	if err != nil {
+		s.updateScanStatus(website.ID, models.Failed)
+		return
+	}
 
 	if err := s.DB.Save(website).Error; err != nil {
 		s.updateScanStatus(website.ID, models.Failed)
